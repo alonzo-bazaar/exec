@@ -2,19 +2,29 @@
 #include"exec.h"
 
 int main(void) {
-    exec(CMD("echo", "hello world")); 
+    command cmd1 = CMD("echo", "hello world");
+    exec(cmd1); 
 
-    exec_parallel(CMDS(
-                       CMD("echo", "hello world"),
-                       CMD("echo", "fuck         youuuuuu"),
-                       CMD("touch", "file.txt")
-                      ));
+    command cmd2 = CMD("echo", "fuck    youuuuuuu");
+    exec(cmd2); 
 
-    exec_parallel(CMDS(
-                       CMD("ls", "-l", "pluto"),
-                       CMD("echo", "souja boi\nin this hoe\nwatch me crank that"),
-                       CMD("rm", "file.txt")
-                      )); 
+    free(exec_parallel(CMDS(
+			    CMD("echo", "hello world"),
+			    CMD("echo", "fuck         youuuuuu"),
+			    CMD("touch", "file.txt")
+			   )));
+
+    free(exec_parallel(CMDS(
+			    CMD("ls", "-l", "pluto"),
+			    CMD("echo", "souja boi\nin this hoe\nwatch me crank that"),
+			    CMD("rm", "file.txt")
+			   ))); 
+
+    free(exec_pipeline(CMDS(
+			    CMD("ls", "-l", "."),
+			    CMD("grep", "c$"),
+			    CMD("xxd")
+			   )));
 
     return 0;
 }

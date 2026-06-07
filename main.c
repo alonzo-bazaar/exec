@@ -1,16 +1,22 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/wait.h>
-
 #define EXEC_IMPLEMENTATION_
 #include "exec.h"
 
 int main(void)
 {
+    exec(CMD("echo", "hello world")); 
+
+    free(exec_parallel(CMDS(
+			    CMD("echo", "hello world"),
+			    CMD("echo", "fuck         youuuuuu"),
+			    CMD("touch", "file.txt")
+			   )));
+
+    free(exec_parallel(CMDS(
+			    CMD("ls", "-l", "pluto"),
+			    CMD("echo", "souja boi\nin this hoe\nwatch me crank that"),
+			    CMD("rm", "file.txt")
+			   ))); 
+
     int* ret = exec_pipeline(CMDS(
 		       CMD("ls", "-l", "."),
 		       CMD("grep", "c$"),
@@ -20,6 +26,7 @@ int main(void)
     for(size_t i = 0; i<2; ++i)
 	printf("%d ", ret[i]);
     printf("\n");
+
     free(ret);
     return 0;
 }

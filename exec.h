@@ -61,9 +61,23 @@ typedef struct command command;
 struct command_arr;
 typedef struct command_arr command_arr;
 
-int exec(command cmd);
-int* exec_parallel(command_arr cmds);
-int* exec_pipeline(command_arr cmds);
+// pass shit by value in C
+// pass shit by reference in C++
+// passing by value in c++ causes double free when two copies of the same struct, holding the same
+// pointer, both try and free the same pointer upon deletion
+// I have these macros so I don't have to #ifdef #else #endif every signature I want to accept
+// a value in C and a reference in C++
+#ifdef __cplusplus
+#define CONST_COMMAND const command&
+#define CONST_COMMAND_ARR const command_arr&
+#else
+#define CONST_COMMAND const command
+#define CONST_COMMAND_ARR const command_arr
+#endif // __cplusplus
+
+int exec(CONST_COMMAND cmd);
+int* exec_parallel(CONST_COMMAND_ARR cmds);
+int* exec_pipeline(CONST_COMMAND_ARR cmds);
 
 #ifdef __cplusplus
 }
@@ -106,19 +120,24 @@ typedef struct command_arr {
             .size = ARG_COUNT(__VA_ARGS__),     \
             .cmds = (command[]){ __VA_ARGS__ }  \
         })
+#define EXECVP execvp
 #else
 struct command {
     const size_t argc;
     const char** argv;
     command(size_t argc, const char** argv):argc(argc),argv(argv){}
-    ~command() = default;
+    ~command() {
+	free(argv);
+    }
 };
 struct command_arr {
     const size_t size;
     const command* cmds;
+    ~command_arr() = default;
 };
 command _CMD(std::initializer_list<const char*> argv) {
-    const char* char_argv[argv.size()+1];
+    const size_t n = argv.size()+1;
+    const char** char_argv = (const char**)calloc(n, sizeof(char*));
     size_t i = 0;
     for(auto s : argv)
 	char_argv[i++] = s;
@@ -133,7 +152,7 @@ command _CMD(std::initializer_list<const char*> argv) {
         })
 #endif // __cplusplus
 
-// ARG_COUNT defined
+// ARG_COUNT defined below
 // preprocessor abuse adapted from
 // https://groups.google.com/g/comp.std.c/c/d-6Mj5Lko_s?pli=1
 // found in the second anser to
@@ -158,7 +177,7 @@ command _CMD(std::initializer_list<const char*> argv) {
                         _21, _22, _23, _24, _25, _26, _27, _28, _29, _30, ...) _30
 
 #if defined(unix) || defined(__unix__) || defined(__unix)
-pid_t spawn(command cmd) {
+pid_t spawn(CONST_COMMAND cmd) {
     if(cmd.argc == 0)
         return -1;
 
@@ -179,23 +198,21 @@ pid_t spawn(command cmd) {
     }
 }
 
+
 /*
  * runs one command and blocks until command is done
  * returns exit code of command, or -1 if a failure occured
  */
-int exec(command cmd) {
-    pid_t child_pid = spawn(cmd);
+int exec(CONST_COMMAND cmd) {
+    pid_t child_pid = WARN_ON_FAIL(spawn(cmd));
     if(child_pid == -1)
         return -1;
 
     int child_ret = -1;
-    pid_t p = waitpid(child_pid, &child_ret, 0);
-    if(p == -1) {
-        fprintf(stderr, "[ERROR] failure while waiting on child process!\n");
-        fprintf(stderr, "[ERROR] %s\n", strerror(errno));
+    pid_t p =  WARN_ON_FAIL(waitpid(child_pid, &child_ret, 0));
+    if(p == -1)
         return -1;
-    }
-    dbgf("[PARENT] returned %d", child_ret);
+
     return child_ret;
 }
 
@@ -205,7 +222,7 @@ int exec(command cmd) {
  * codes of all spawned commands appearing in the same order as they did in the
  * command array passed to the function
  */
-int* exec_parallel(command_arr cmds) {
+int* exec_parallel(CONST_COMMAND_ARR cmds) {
     pid_t* children_pid = (pid_t*)calloc(cmds.size, sizeof(pid_t));
     int* children_ret = (int*)calloc(cmds.size+1, sizeof(int));
     memset(children_ret, 0, cmds.size*sizeof(int));
@@ -242,6 +259,7 @@ int* exec_parallel(command_arr cmds) {
             children_ret[i] = -1;
         }
     }
+    free(children_pid);
     return children_ret;
 }
 
@@ -284,7 +302,7 @@ int grab_pipe_stdin(int pipe[2]) {
 // this means a parent can just call pipe, get two fds
 // and then after fork is called a child can see those file descriptors
 // then hook its stdin and stdout to the ends of the pipe before calling exec
-int* exec_pipeline(command_arr cmds) {
+int* exec_pipeline(CONST_COMMAND_ARR cmds) {
     if(cmds.size == 0) {
 	fprintf(stderr, "pipeline have command of length zero!\n");
 	return NULL;
