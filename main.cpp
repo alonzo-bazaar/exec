@@ -1,7 +1,7 @@
+#define EXEC_IMPLEMENTATION_
 #include"exec.h"
-int main(int argc, char** argv) {
-    (void)argc;
-    (void)argv;
+
+int main(void) {
     exec(CMD("echo", "hello world")); 
 
     exec_parallel(CMDS(
