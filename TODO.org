@@ -1,0 +1,23 @@
+* Functions
+exec -> returns wether was successful
+
+exec parallel
+takes a vector of commands as string vectors
+return a vector of
+"was the first one successful?", "was the second one succesful?", "was the third one successful?"
+
+exec pipeline -> returns an array pipestatus
+takes a vector of
+this command
+feeds into this command
+feeds into this command
+feeds into this ...
+...
+
+* TODO for now
+implement these three functions in c for both posix and win32
+snarfing from nob is accepted
+(will reqiure a string dynamic array for the windows part)
+
+* TODO for later
+get these three functions into shsl

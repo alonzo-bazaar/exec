@@ -1,0 +1,10 @@
+# executable files
+a.out
+exec
+execpp
+
+# intermediate/testing files
+meth.c
+
+# whatever these are
+*.pch
