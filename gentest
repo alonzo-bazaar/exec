@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+echo '#include <assert.h>'
+echo '#define EXEC_IMPLEMENTATION_'
+echo '#include "exec.h"'
+echo 'int main() {'
+
+for i in {1..29}; do
+    echo -n "assert(ARG_COUNT("
+    for ((j = 1; j<=i; j++)); do
+        echo -n "$j"
+        [[ $j != $i ]] && echo -n ", "
+    done
+    echo ")==$i);"
+done
+
+echo $'}'
